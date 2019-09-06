@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advent-deployment
+  labels:
+    app: advent 
+spec:
+  selector:
+    matchLabels:
+      app: advent 
+  template:
+    metadata:
+      labels:
+        app: advent 
+    spec:
+      containers:
+      - name: advent 
+        image: dumplingxman/myadvent:public
+        ports:
+        - containerPort: 80

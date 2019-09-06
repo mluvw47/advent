@@ -5,7 +5,7 @@ PORT?=8000
 RELEASE?=0.0.1
 COMMIT?=$(shell git rev-parse --short HEAD)
 BUILD_TIME?=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-CONTAINER_IMAGE?=docker.io/webdeva/${APP}
+CONTAINER_IMAGE?=docker.io/dumplingxman/${APP}
 
 GOOS?=linux
 GOARCH?=amd64
@@ -26,7 +26,7 @@ run: container
 	docker stop $(APP):$(RELEASE) || true && docker rm $(APP):$(RELEASE) || true
 	docker run --name ${APP} -p ${PORT}:${PORT} --rm \
 		-e "PORT=${PORT}" \
-		$(APP):$(RELEASE)
+		$(CONTAINER_IMAGE):$(RELEASE)
 
 test:
 	go test -v -race ./...
@@ -34,11 +34,19 @@ test:
 push: container
 	docker push $(CONTAINER_IMAGE):$(RELEASE)
 
-minikube: push
+microk8s: push
 	for t in $(shell find ./kubernetes/advent -type f -name "*.yaml"); do \
         cat $$t | \
-        	gsed -E "s/\{\{(\s*)\.Release(\s*)\}\}/$(RELEASE)/g" | \
-        	gsed -E "s/\{\{(\s*)\.ServiceName(\s*)\}\}/$(APP)/g"; \
+        	sed -E "s/\{\{(\s*)\.Release(\s*)\}\}/$(RELEASE)/g" | \
+        	sed -E "s/\{\{(\s*)\.ServiceName(\s*)\}\}/$(APP)/g"; \
         echo ---; \
     done > tmp.yaml
-	kubectl apply -f tmp.yaml
+	microk8s.kubectl apply -f tmp.yaml
+	microk8s.kubectl get deploy
+	microk8s.kubectl get pods
+	microk8s.kubectl get services
+
+microk8sstop:
+	microk8s.kubectl delete service --all
+	microk8s.kubectl delete pods --all
+	microk8s.kubectl delete deployment --all
